@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗳️ Urna Digital</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background: #f0f4f8; min-height: 100vh; padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        .tela { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
+        .tela.ativa { display: block; }
+        button { width: 100%; padding: 15px; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; margin: 8px 0; transition: 0.2s; }
+        button:hover { transform: scale(1.02); }
+        .btn-azul { background: #2196F3; color: white; }
+        .btn-laranja { background: #FF9800; color: white; }
+        .btn-verde { background: #4CAF50; color: white; }
+        .btn-vermelho { background: #f44336; color: white; }
+        .btn-cinza { background: #e0e0e0; color: #333; }
+        input { width: 100%; padding: 14px; font-size: 18px; border: 2px solid #ddd; border-radius: 8px; margin: 8px 0; }
+        .display { background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; margin: 15px 0; border: 2px solid #ddd; }
+        .display .numero { font-size: 48px; font-weight: bold; color: #2c3e50; }
+        .display .nome { font-size: 22px; margin-top: 10px; color: #2c3e50; }
+        .display .partido { font-size: 16px; color: #666; margin-top: 5px; }
+        .teclado { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
+        .tecla { padding: 15px; font-size: 22px; background: #2c3e50; color: white; border-radius: 8px; }
+        .tecla:hover { background: #34495e; }
+        .acoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+        .candidato { padding: 12px; border-bottom: 1px solid #eee; }
+        .candidato span { font-weight: bold; }
+        .sucesso { background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; text-align: center; font-size: 20px; display: none; }
+        .tabs { display: flex; margin-bottom: 20px; }
+        .tab { flex: 1; padding: 10px; background: #ddd; border: none; border-radius: 6px 6px 0 0; font-size: 14px; }
+        .tab.ativa { background: white; font-weight: bold; }
+        .resultado { font-family: monospace; white-space: pre; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗳️ Urna Digital</h1>
+
+        <!-- Tela Inicial -->
+        <div id="tela-inicial" class="tela ativa">
+            <button class="btn-azul" onclick="mostrarTela('votacao')">🗳️ VOTAR</button>
+            <button class="btn-laranja" onclick="mostrarTela('login')">⚙️ ÁREA DE ADMINISTRAÇÃO</button>
+        </div>
+
+        <!-- Tela Login -->
+        <div id="tela-login" class="tela">
+            <h2 style="text-align:center; margin-bottom:20px;">🔐 Acesso Admin</h2>
+            <input type="password" id="senha-admin" placeholder="Digite a senha de administração">
+            <button class="btn-verde" onclick="verificarSenha()">Entrar</button>
+            <button class="btn-cinza" onclick="mostrarTela('inicial')">Voltar</button>
+        </div>
+
+        <!-- Tela Administração -->
+        <div id="tela-admin" class="tela">
+            <div class="tabs">
+                <button class="tab ativa" onclick="mudarAba('cadastrar', this)">Cadastrar</button>
+                <button class="tab" onclick="mudarAba('lista', this)">Candidatos</button>
+                <button class="tab" onclick="mudarAba('resultados', this)">Resultados</button>
+            </div>
+
+            <!-- Aba Cadastrar -->
+            <div id="aba-cadastrar">
+                <h3>Cadastrar Candidato</h3>
+                <input type="number" id="cand-numero" placeholder="Número do candidato">
+                <input type="text" id="cand-nome" placeholder="Nome completo">
+                <input type="text" id="cand-partido" placeholder="Partido">
+                <button class="btn-verde" onclick="adicionarCandidato()">✅ Cadastrar</button>
+            </div>
+
+            <!-- Aba Lista -->
+            <div id="aba-lista" style="display:none;">
+                <h3>Lista de Candidatos</h3>
+                <div id="lista-candidatos"></div>
+                <button class="btn-cinza" onclick="carregarCandidatos()">🔄 Atualizar</button>
+            </div>
+
+            <!-- Aba Resultados -->
+            <div id="aba-resultados" style="display:none;">
+                <h3>Resultados da Votação</h3>
+                <div class="resultado" id="resultados-texto"></div>
+                <button class="btn-verde" onclick="mostrarResultados()">📊 Atualizar</button>
+                <button class="btn-vermelho" onclick="zerarVotos()">🔄 Zerar Votação</button>
+            </div>
+
+            <button class="btn-cinza" style="margin-top:20px;" onclick="sairAdmin()">🚪 Sair</button>
+        </div>
+
+        <!-- Tela Votação -->
+        <div id="tela-votacao" class="tela">
+            <h3 style="text-align:center; margin-bottom:15px;">Digite o número do seu candidato</h3>
+            
+            <div class="display">
+                <div class="numero" id="mostrar-numero">____</div>
+                <div class="nome" id="mostrar-nome"></div>
+                <div class="partido" id="mostrar-partido"></div>
+            </div>
+
+            <div class="teclado">
+                <button class="tecla" onclick="digitar('1')">1</button>
+                <button class="tecla" onclick="digitar('2')">2</button>
+                <button class="tecla" onclick="digitar('3')">3</button>
+                <button class="tecla" onclick="digitar('4')">4</button>
+                <button class="tecla" onclick="digitar('5')">5</button>
+                <button class="tecla" onclick="digitar('6')">6</button>
+                <button class="tecla" onclick="digitar('7')">7</button>
+                <button class="tecla" onclick="digitar('8')">8</button>
+                <button class="tecla" onclick="digitar('9')">9</button>
+                <button class="tecla" onclick="digitar('0')">0</button>
+            </div>
+
+            <div class="acoes">
+                <button class="btn-verde" style="background:white; color:black; border:1px solid #ccc;" onclick="votoBranco()">BRANCO</button>
+                <button class="btn-cinza" onclick="corrigir()">CORRIGE</button>
+                <button class="btn-verde" onclick="confirmar()">CONFIRMA</button>
+            </div>
+
+            <div class="sucesso" id="aviso-sucesso">✅ VOTO REGISTRADO! Obrigado!</div>
+            <button class="btn-cinza" style="margin-top:15px;" onclick="mostrarTela('inicial'); corrigir()">← Voltar</button>
+        </div>
+    </div>
+
+    <script>
+        const SENHA_ADMIN = "admin123";
+        let candidatos = JSON.parse(localStorage.getItem('candidatos') || '[]');
+        let votosBrancos = parseInt(localStorage.getItem('votosBrancos') || '0');
+        let numeroDigitado = "";
+
+        function mostrarTela(nome) {
+            document.querySelectorAll('.tela').forEach(t => t.classList.remove('ativa'));
+            document.getElementById('tela-' + nome).classList.add('ativa');
+            if (nome === 'lista') carregarCandidatos();
+            if (nome === 'resultados') mostrarResultados();
+        }
+
+        function verificarSenha() {
+            const senha = document.getElementById('senha-admin').value;
+            if (senha === SENHA_ADMIN) {
+                mostrarTela('admin');
+                document.getElementById('senha-admin').value = "";
+            } else {
+                alert("❌ Senha incorreta!");
+            }
+        }
+
+        function sairAdmin() {
+            mostrarTela('inicial');
+        }
+
+        function mudarAba(nomeAba, botao) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('ativa'));
+            botao.classList.add('ativa');
+            document.querySelectorAll('[id^="aba-"]').forEach(a => a.style.display = 'none');
+            document.getElementById('aba-' + nomeAba).style.display = 'block';
+        }
+
+        function salvarDados() {
+            localStorage.setItem('candidatos', JSON.stringify(candidatos));
+            localStorage.setItem('votosBrancos', votosBrancos.toString());
+        }
+
+        function adicionarCandidato() {
+            const numero = parseInt(document.getElementById('cand-numero').value);
+            const nome = document.getElementById('cand-nome').value.trim();
+            const partido = document.getElementById('cand-partido').value.trim();
+
+            if (!numero || !nome || !partido) {
+                alert("⚠️ Preencha todos os campos!");
+                return;
+            }
+
+            if (candidatos.find(c => c.numero === numero)) {
+                alert("⚠️ Já existe um candidato com esse número!");
+                return;
+            }
+
+            candidatos.push({ numero, nome, partido, votos: 0 });
+            salvarDados();
+            
+            document.getElementById('cand-numero').value = "";
+            document.getElementById('cand-nome').value = "";
+            document.getElementById('cand-partido').value = "";
+            
+            alert("✅ Candidato cadastrado com sucesso!");
+        }
+
+        function carregarCandidatos() {
+            const lista = document.getElementById('lista-candidatos');
+            if (candidatos.length === 0) {
+                lista.innerHTML = "<p style='color:#666; text-align:center; padding:15px;'>Nenhum candidato cadastrado ainda.</p>";
+                return;
+            }
+            lista.innerHTML = candidatos.map((c, i) => `
+                <div class="candidato">
+                    <span>${c.numero}</span> — ${c.nome} <small>(${c.partido})</small>
+                    <button style="width:auto; padding:5px 10px; font-size:12px; background:#f44336; color:white; float:right;" 
+                        onclick="excluirCandidato(${i})">Excluir</button>
+                </div>
+            `).join('');
+        }
+
+        function excluirCandidato(indice) {
+            if (confirm("Tem certeza que deseja excluir este candidato?")) {
+                candidatos.splice(indice, 1);
+                salvarDados();
+                carregarCandidatos();
+            }
+        }
+
+        function mostrarResultados() {
+            let totalVotos = candidatos.reduce((s, c) => s + c.votos, 0) + votosBrancos;
+            let texto = "=".repeat(45) + "\n";
+            texto += "        R E S U L T A D O S\n";
+            texto += "=".repeat(45) + "\n";
+            texto += `${'Candidato'.padEnd(25)} ${'Partido'.padEnd(10)} ${'Votos'.padEnd(7)} %\n`;
+            texto += "-".repeat(45) + "\n";
+
+            candidatos.sort((a, b) => b.votos - a.votos).forEach(c => {
+                const pct = totalVotos > 0 ? (c.votos / totalVotos * 100).toFixed(1) : "0.0";
+                texto += `${c.nome.padEnd(25)} ${c.partido.padEnd(10)} ${c.votos.toString().padEnd(7)} ${pct}%\n`;
+            });
+
+            texto += "-".repeat(45) + "\n";
+            texto += `${'Votos Brancos'.padEnd(35)} ${votosBrancos.toString().padEnd(7)}\n`;
+            texto += `${'TOTAL'.padEnd(35)} ${totalVotos.toString().padEnd(7)}\n`;
+            texto += "=".repeat(45);
+
+            document.getElementById('resultados-texto').textContent = texto;
+        }
+
+        function zerarVotos() {
+            if (confirm("⚠️ Tem certeza? Isso apagará TODOS os votos! Não pode ser desfeito.")) {
+                candidatos.forEach(c => c.votos = 0);
+                votosBrancos = 0;
+                salvarDados();
+                mostrarResultados();
+                alert("✅ Votação zerada! Pronto para começar.");
+            }
+        }
+
+        // Funções da Votação
+        function digitar(n) {
+            if (numeroDigitado.length < 4) {
+                numeroDigitado += n;
+                atualizarDisplay();
+            }
+        }
+
+        function corrigir() {
+            numeroDigitado = "";
+            atualizarDisplay();
+        }
+
+        function atualizarDisplay() {
+            const elNum = document.getElementById('mostrar-numero');
+            const elNome = document.getElementById('mostrar-nome');
+            const elPart = document.getElementById('mostrar-partido');
+
+            if (numeroDigitado === "") {
+                elNum.textContent = "____";
+                elNome.textContent = "";
+                elPart.textContent = "";
+            } else {
+                elNum.textContent = numeroDigitado + "_".repeat(4 - numeroDigitado.length);
+                const num = parseInt(numeroDigitado);
+                const cand = candidatos.find(c => c.numero === num);
+                if (cand) {
+                    elNome.textContent = cand.nome;
+                    elPart.textContent = cand.partido;
+                } else if (numeroDigitado.length >= 2) {
+                    elNome.textContent = "NÃO ENCONTRADO";
+                    elPart.textContent = "";
+                }
+            }
+        }
+
+        function votoBranco() {
+            if (confirm("Confirma voto em BRANCO?")) {
+                votosBrancos++;
+                salvarDados();
+                sucessoVoto();
+            }
+        }
+
+        function confirmar() {
+            if (!numeroDigitado) {
+                alert("Digite um número ou escolha BRANCO");
+                return;
+            }
+            const num = parseInt(numeroDigitado);
+            const cand = candidatos.find(c => c.numero === num);
+            
+            if (cand) {
+                if (confirm(`Confirma voto em ${cand.nome}?`)) {
+                    cand.votos++;
+                    salvarDados();
+                    sucessoVoto();
+                }
+            } else {
+                if (confirm("Voto NULO — confirma?")) {
+                    // Voto nulo — não é contado para nenhum candidato
+                    sucessoVoto();
+                }
+            }
+        }
+
+        function sucessoVoto() {
+            const aviso = document.getElementById('aviso-sucesso');
+            aviso.style.display = 'block';
+            corrigir();
+            setTimeout(() => aviso.style.display = 'none', 2500);
+        }
+    </script>
+</body>
+</html>
